@@ -24,12 +24,18 @@ class DataVisualization:
         '''
         --> General informations
         '''
+        standard_columns = ['date', 'id', 'zipcode', 'price', 'price_m2', 'sqft_living', 'bedrooms', 'bathrooms', 'floors', 
+                            'waterfront', 'yr_built', 'lat', 'long']
         f_attributes = st.sidebar.multiselect('Enter columns', self._data.columns)
+        
+        # Include standard_columns if f_attribues was defined
+        if f_attributes:
+            not_selected = list(set(standard_columns).difference(set(f_attributes)))
+            for columns in standard_columns:
+                if columns not in f_attributes: 
+                    f_attributes.append(columns)
+            
         f_zipcode = st.sidebar.multiselect('Enter zipcode', self._data['zipcode'].unique())
-
-        st.header('Data Overview')
-
-        st.dataframe(self._data)
 
         if f_attributes != [] and f_zipcode != []:
             self._data = self._data.loc[self._data['zipcode'].isin(f_zipcode), f_attributes]
@@ -39,6 +45,12 @@ class DataVisualization:
             self._data = self._data.loc[:, f_attributes]
         else:
             self._data = self._data.copy()
+        
+        st.header('Data Overview')
+        if f_attributes:
+            st.dataframe(self._data.drop(not_selected, axis=1))
+        else:
+            st.dataframe(self._data)
 
         c1, c2 = st.columns((1, 1))
         # Metrics
