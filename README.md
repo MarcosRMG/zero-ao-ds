@@ -1,4 +1,4 @@
-# Project Python do Zero ao DS by Comunidade DS
+# Project Python do Zero ao DS
 ## House Sales in King Country, USA
 
 ### Business Problem
