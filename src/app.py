@@ -13,9 +13,13 @@ geofile = get_geofile('https://opendata.arcgis.com/datasets/83fc2e72903343aabff6
 def main(data, geofile):
     st.title('House Sales in King County, USA')
     visualization = DataVisualization(data, geofile)
+    visualization.columns_filter()
+    visualization.price_filter()
+    visualization.feature_options()
     visualization.data_overview()
     visualization.density_portfolio()
-    visualization.histogram()
+    visualization.price_distribuition()
+    visualization.feature_distribution()
     
 
 if __name__ == '__main__':
