@@ -17,8 +17,18 @@ class DataVisualization:
         '''
         --> Apply filters and show visualizations about the data
 
-        param data: DataFrame Pandas with informations to visualize
-        param geofile: URL with regions of Seattle city  
+        :param data: DataFrame Pandas with informations to visualize
+        :param geofile: URL with regions of Seattle city  
+        :param attributes: The attributes filters of a house
+        :param zipcode: The zipcode of house location
+        :param columns_not_selected: Columns not filtered for the use
+        :param min_price: Min price filter of a house
+        :param max_price: Max price filter of a house
+        :param avg_price: Average price fiter of a house
+        :param bedrooms: Max number of bedrooms to filter
+        :param bathrooms: Max number of bathrooms to filter
+        :param floors: Max number of floors to filter
+        :para waterview: Filter only houses with waterview 
         '''
         self._data = data
         self._geofile = geofile
@@ -43,7 +53,8 @@ class DataVisualization:
                             'waterfront', 'yr_built', 'lat', 'long']
 
         # Column filter
-        self._attributes = st.sidebar.multiselect('Enter columns', self._data.columns)
+        self._attributes = st.sidebar.multiselect('Enter columns', self._data.columns, default=['id', 'price', 'bedrooms', 'bathrooms', 'floors', 
+                                                                                                'recommendation'])
         
         # Include standard_columns if f_attribues was defined
         if self._attributes:
@@ -73,9 +84,9 @@ class DataVisualization:
 
         self._min_price = int(self._data['price'].min())
         self._max_price = int(self._data['price'].max())
-        self._avg_price = int(self._data['price'].mean())
+        #self._avg_price = int(self._data['price'].mean())
 
-        f_price = st.sidebar.slider('Price', self._min_price, self._max_price, self._avg_price)
+        f_price = st.sidebar.slider('Price', self._min_price, self._max_price, self._max_price)
         self._data = self._data.loc[self._data['price'] <= f_price]
 
 
@@ -86,9 +97,9 @@ class DataVisualization:
         # filters
         st.sidebar.title('Attributes Options')
 
-        self._bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(self._data['bedrooms'].unique())))
-        self._bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(self._data['bathrooms'].unique())))
-        self._floors = st.sidebar.selectbox('Max number of floors', sorted(set(self._data['floors'].unique())))
+        self._bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(self._data['bedrooms'].unique()), reverse=True))
+        self._bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(self._data['bathrooms'].unique()), reverse=True))
+        self._floors = st.sidebar.selectbox('Max number of floors', sorted(set(self._data['floors'].unique()), reverse=True))
         self._waterview = st.sidebar.checkbox('Only Houses with Water View')
 
         # DataFrame slice
@@ -105,43 +116,44 @@ class DataVisualization:
         --> General informations in tables with all columns or selected columns
         '''       
         if self._data.empty:
-            st.header('No Houses Available')
-            
+            st.header('No Houses Available')      
         else:
-            c1, c2 = st.columns((1, 1))
             st.header('Data Overview')
             if self._attributes:
-                st.dataframe(self._data.drop(self._not_selected, axis=1))
+                st.dataframe(self._data.drop(self._not_selected, axis=1).reset_index())
             else:
-                st.dataframe(self._data)
+                st.dataframe(self._data.reset_index())
 
+
+    def metrics(self):
+        '''
+        --> Metrics of available houses
+        '''
+        if self._data.empty:
+            st.write('')
+        else:
+            c1, c2 = st.columns((1, 1))
             # Metrics
             df1 = self._data[['id', 'zipcode']].groupby('zipcode').count().reset_index()
             df2 = self._data[['price', 'zipcode']].groupby('zipcode').mean().reset_index()
             df3 = self._data[['sqft_living', 'zipcode']].groupby('zipcode').mean().reset_index()
             df4 = self._data[['price_m2', 'zipcode']].groupby('zipcode').mean().reset_index()
-
             # Merge
             m1 = pd.merge(df1, df2, on='zipcode', how='inner')
             m2 = pd.merge(m1, df3, on='zipcode', how='inner')
             df = pd.merge(m2, df4, on='zipcode', how='inner')
             df.columns = ['ZIPCODE', 'ID', 'PRICE', 'SQFT_LIVING', 'PRICE M²']
-
             c1.subheader('Metrics')
             c1.dataframe(df)
-
             # Statistic Descriptive
             num_attributes = self._data.select_dtypes(include=['int64', 'float64'])
             mean = pd.DataFrame(num_attributes.mean())
             median = pd.DataFrame(num_attributes.median())
             std = pd.DataFrame(num_attributes.std())
-
             min = pd.DataFrame(num_attributes.min())
             max = pd.DataFrame(num_attributes.max())
-
             df1 = pd.concat([min, max, mean, median, std], axis=1).reset_index()
             df1.columns = ['Attributes', 'Min', 'Max', 'Mean', 'Median', 'Std']
-
             c2.subheader('Descriptive Analysis')
             c2.dataframe(df1)
 
@@ -210,22 +222,26 @@ class DataVisualization:
 
             # House per bedrooms
             c1.subheader('House per bedrooms')
-            fig = px.histogram(self._data, x='bedrooms', nbins=19)
+            _ = self._data['bedrooms'].value_counts()
+            fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Bedrooms', 'y': 'Count'})
             c1.plotly_chart(fig, use_container_width=True)
 
             # House per bathrooms
             c2.subheader('House per bathrooms')
-            fig = px.histogram(self._data, x='bathrooms', nbins=19)
+            _ = self._data['bathrooms'].value_counts()
+            fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Bathrooms', 'y': 'Count'})
             c2.plotly_chart(fig, use_container_width=True)
 
             # House per floors
             c1, c2 = st.columns(2)
 
             c1.subheader('House per floors')
-            fig = px.histogram(self._data, x='floors', nbins=19)
+            _ = self._data['floors'].value_counts()
+            fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Floors', 'y': 'Count'})
             c1.plotly_chart(fig, use_container_width=True)
 
             # Waterfront
             c2.subheader('House per water view')
-            fig = px.histogram(self._data, x='waterfront', nbins=10)
+            _ = self._data['waterfront'].replace({0: 'No', 1: 'Yes'}).value_counts()
+            fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Water Front', 'y': 'Count'})
             c2.plotly_chart(fig, use_container_width=True)

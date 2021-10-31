@@ -17,6 +17,7 @@ def main(data, geofile):
     visualization.price_filter()
     visualization.feature_options()
     visualization.data_overview()
+    visualization.metrics()
     visualization.density_portfolio()
     visualization.price_distribuition()
     visualization.feature_distribution()
