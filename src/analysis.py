@@ -7,7 +7,6 @@ from datetime import datetime
 import plotly.express as px
 
 
-
 class DataVisualization:
     '''
     --> Shows control options and graphical views   
