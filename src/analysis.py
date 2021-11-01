@@ -84,7 +84,7 @@ class DataVisualization:
         self._min_price = int(self._data['price'].min())
         self._max_price = int(self._data['price'].max())
         # Set price
-        f_price = st.sidebar.slider('Price', self._min_price, self._max_price, self._max_price)
+        f_price = st.sidebar.slider('Price', self._min_price, self._max_price, self._min_price)
         # DataFrame reassignment
         self._data = self._data.loc[self._data['price'] <= f_price]
 
@@ -95,9 +95,9 @@ class DataVisualization:
         '''
         # filters
         st.sidebar.title('Attributes Options')
-        self._bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(self._data['bedrooms'].unique()), reverse=True))
-        self._bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(self._data['bathrooms'].unique()), reverse=True))
-        self._floors = st.sidebar.selectbox('Max number of floors', sorted(set(self._data['floors'].unique()), reverse=True))
+        self._bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(self._data['bedrooms'].unique()), reverse=False))
+        self._bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(self._data['bathrooms'].unique()), reverse=False))
+        self._floors = st.sidebar.selectbox('Max number of floors', sorted(set(self._data['floors'].unique()), reverse=False))
         self._waterview = st.sidebar.checkbox('Only Houses with Water View')
 
         # DataFrame slice
@@ -129,11 +129,8 @@ class DataVisualization:
         '''
         --> Maps visualizations
         '''
-        
-
         if self._data.empty:
            st.write('')
-
         else:
             st.header('Region Overview')
 
