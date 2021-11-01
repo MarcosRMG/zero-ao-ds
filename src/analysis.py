@@ -1,9 +1,7 @@
-import pandas as pd
 import streamlit as st
 import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
-from datetime import datetime
 import plotly.express as px
 
 
@@ -47,7 +45,7 @@ class DataVisualization:
         '''
         --> Options to filter the columns display
         '''
-        # Column and zipcode filter
+        # Columns that can't be excluded from DataFrame
         standard_columns = ['date', 'id', 'zipcode', 'price', 'price_m2', 'sqft_living', 'bedrooms', 'bathrooms', 'floors', 
                             'waterfront', 'yr_built', 'lat', 'long']
 
@@ -65,6 +63,7 @@ class DataVisualization:
         # Zipcode filter    
         f_zipcode = st.sidebar.multiselect('Enter zipcode', self._data['zipcode'].unique())
 
+        # DataFrame attribution
         if self._attributes != [] and f_zipcode != []:
             self._data = self._data.loc[self._data['zipcode'].isin(f_zipcode), self._attributes]
         elif self._attributes == [] and f_zipcode != []:
@@ -79,13 +78,14 @@ class DataVisualization:
         '''
         --> Filter the max price of house to display portfolio options
         '''    
+        # Selector
         st.sidebar.subheader('Select Max Price')
-
+        # Range definiiton
         self._min_price = int(self._data['price'].min())
         self._max_price = int(self._data['price'].max())
-        #self._avg_price = int(self._data['price'].mean())
-
+        # Set price
         f_price = st.sidebar.slider('Price', self._min_price, self._max_price, self._max_price)
+        # DataFrame reassignment
         self._data = self._data.loc[self._data['price'] <= f_price]
 
 
@@ -95,16 +95,13 @@ class DataVisualization:
         '''
         # filters
         st.sidebar.title('Attributes Options')
-
         self._bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(self._data['bedrooms'].unique()), reverse=True))
         self._bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(self._data['bathrooms'].unique()), reverse=True))
         self._floors = st.sidebar.selectbox('Max number of floors', sorted(set(self._data['floors'].unique()), reverse=True))
         self._waterview = st.sidebar.checkbox('Only Houses with Water View')
 
         # DataFrame slice
-        self._data = self._data[self._data['bedrooms'] <= self._bedrooms]
-        self._data = self._data[self._data['bathrooms'] <= self._bathrooms]
-        self._data = self._data[self._data['floors'] <= self._floors]
+        self._data = self._data[(self._data['bedrooms'] <= self._bedrooms) & (self._data['bathrooms'] <= self._bathrooms) & (self._data['floors'] <= self._floors)]
 
         if self._waterview:
             self._data = self._data[self._data['waterfront'] == 1]
@@ -119,42 +116,13 @@ class DataVisualization:
         else:
             st.header('Data Overview')
             if self._attributes:
-                st.dataframe(self._data.drop(self._not_selected, axis=1).reset_index())
+                st.dataframe(self._data.drop(self._not_selected, axis=1).reset_index(drop=True))
+                st.subheader('Descriptive Analysis')
+                st.dataframe(self._data.drop(columns=['zipcode', 'waterfront', 'lat', 'long']).describe().T[['mean', '50%', 'std', 'min', 'max']].rename(columns={'50%': 'median'}))
             else:
-                st.dataframe(self._data.reset_index())
-
-
-    def metrics(self):
-        '''
-        --> Metrics of available houses
-        '''
-        if self._data.empty:
-            st.write('')
-        else:
-            c1, c2 = st.columns((1, 1))
-            # Metrics
-            df1 = self._data[['id', 'zipcode']].groupby('zipcode').count().reset_index()
-            df2 = self._data[['price', 'zipcode']].groupby('zipcode').mean().reset_index()
-            df3 = self._data[['sqft_living', 'zipcode']].groupby('zipcode').mean().reset_index()
-            df4 = self._data[['price_m2', 'zipcode']].groupby('zipcode').mean().reset_index()
-            # Merge
-            m1 = pd.merge(df1, df2, on='zipcode', how='inner')
-            m2 = pd.merge(m1, df3, on='zipcode', how='inner')
-            df = pd.merge(m2, df4, on='zipcode', how='inner')
-            df.columns = ['ZIPCODE', 'ID', 'PRICE', 'SQFT_LIVING', 'PRICE M²']
-            c1.subheader('Metrics')
-            c1.dataframe(df)
-            # Statistic Descriptive
-            num_attributes = self._data.select_dtypes(include=['int64', 'float64'])
-            mean = pd.DataFrame(num_attributes.mean())
-            median = pd.DataFrame(num_attributes.median())
-            std = pd.DataFrame(num_attributes.std())
-            min = pd.DataFrame(num_attributes.min())
-            max = pd.DataFrame(num_attributes.max())
-            df1 = pd.concat([min, max, mean, median, std], axis=1).reset_index()
-            df1.columns = ['Attributes', 'Min', 'Max', 'Mean', 'Median', 'Std']
-            c2.subheader('Descriptive Analysis')
-            c2.dataframe(df1)
+                st.dataframe(self._data.reset_index(drop=True))
+                st.subheader('Descriptive Analysis')
+                st.dataframe(self._data.drop(columns=['zipcode', 'waterfront', 'lat', 'long']).describe().T[['mean', '50%', 'std', 'min', 'max']].rename(columns={'50%': 'median'}))
 
 
     def density_portfolio(self):
@@ -171,12 +139,11 @@ class DataVisualization:
 
             c1, c2 = st.columns((1, 1))
             c1.subheader('Portfolio Density')
-            df = self._data
             # Base mape - folium
             density_map = folium.Map(location=[self._data['lat'].mean(), self._data['long'].mean()], default_zoom_start=5)
 
             marker_cluster = MarkerCluster().add_to(density_map)
-            for name, row in df.iterrows():
+            for name, row in self._data.iterrows():
                 folium.Marker([row['lat'], row['long']], popup=f'Sold R$ {row["price"]}, Date: {row["date"]}, bedrooms {row["bedrooms"]} bathrooms {row["bathrooms"]} year build {row["yr_built"]}').add_to(marker_cluster)
             with c1:
                 folium_static(density_map)
@@ -232,15 +199,15 @@ class DataVisualization:
             c2.plotly_chart(fig, use_container_width=True)
 
             # House per floors
-            c1, c2 = st.columns(2)
+            c3, c4 = st.columns(2)
 
-            c1.subheader('House per floors')
+            c3.subheader('House per floors')
             _ = self._data['floors'].value_counts()
             fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Floors', 'y': 'Count'})
-            c1.plotly_chart(fig, use_container_width=True)
+            c3.plotly_chart(fig, use_container_width=True)
 
             # Waterfront
-            c2.subheader('House per water view')
+            c4.subheader('House per water view')
             _ = self._data['waterfront'].replace({0: 'No', 1: 'Yes'}).value_counts()
             fig = px.bar(_, x=_.index, y=_.values, labels={'index': 'Water Front', 'y': 'Count'})
-            c2.plotly_chart(fig, use_container_width=True)
+            c4.plotly_chart(fig, use_container_width=True)
