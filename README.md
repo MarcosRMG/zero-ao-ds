@@ -1,3 +1,8 @@
-# Web App: <a href="https://analytics-house-sales.herokuapp.com/" target="_blank">House Sales in King Country, USA</a>
+# Insight Project
+## House Sales in King Country, USA
 
-![alt_text](img/web_app.png)
+<a href="https://analytics-house-sales.herokuapp.com/" target="_blank">
+
+<image src="img/web_app.png" alt="Web App">
+
+</a>
